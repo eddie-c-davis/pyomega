@@ -1,0 +1,1 @@
+g++ -O3 -Wall -shared -std=c++11 -fPIC -I/var/lib/packages/iegenlib/src `python3 -m pybind11 --includes` iegenlib_pybind.cpp ../../build/src/libiegenlib.a ../../lib/installed/lib/libisl.a ../../lib/installed/lib/libgmp.a -o iegenlib.so
