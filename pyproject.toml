@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "pyomega"
+version = "0.1.0"
+description = "Python wrapper for Omega polyhedral compiler"
+authors = ["Eddie Davis <eddied@vulcan.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/eddie-c-davis/pyomega"
+repository = "https://github.com/eddie-c-davis/pyomega"
+keywords = ["omega polyhedral compiler"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+black = "^20.8b1"
+click = "^7.1.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.1.2"
+coverage = {extras = ["toml"], version = "^5.3"}
+pytest-cov = "^2.10.1"
+pytest-mock = "^3.3.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pyomega = "pyomega.console:main"
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+[tool.coverage.run]
+branch = true
+source = ["pyomega"]
+
+[tool.coverage.report]
+show_missing = true
