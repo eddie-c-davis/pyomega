@@ -8,14 +8,14 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "/home/eddied/.local/bin/poetry",
+            "program": "/home/eddied/.local/bin/pytest",
             "console": "integratedTerminal",
             "args": [
                 // "-x",
-                "run",
-                "pytest",
+                // "run",
+                // "pytest",
                 "-k",
-                "test_ast",
+                "test_parser",
                 "./tests/test_ir.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"
