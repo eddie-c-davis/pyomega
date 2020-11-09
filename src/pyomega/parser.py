@@ -79,7 +79,9 @@ class Parser(ast.NodeVisitor):
             return "*"
         elif isinstance(node, (ast.Div, ast.FloorDiv)):
             return "/"
-        elif isinstance(node, (ast.Div, ast.Pow)):
+        elif isinstance(node, ast.Mod):
+            return "%"
+        elif isinstance(node, ast.Pow):
             # TODO: Are exponents supported in Presburger expressions?
             return "**"
         raise TypeError("Unrecognized operator: " + str(node))
