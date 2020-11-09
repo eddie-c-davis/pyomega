@@ -12,10 +12,8 @@ Implementation of the intermediate representations used in PyOmega.
 
 @dataclass
 class Node:
-    children: List = ()
-
     @property
-    def id(self):
+    def id(self) -> int:
         return id(self)
 
 
@@ -31,12 +29,23 @@ class Literal(Node):
 
 @dataclass
 class Function(Node):
-    name: str = ""
+    name: str
+    args: List[Node]
+
+    def add(self, arg: Node) -> None:
+        self.args.append(arg)
 
 
 @dataclass
 class Constant(Node):
     name: str = ""
+
+
+@dataclass
+class BinOp(Node):
+    left: Node = None
+    op: str = ""
+    right: Node = None
 
 
 @dataclass

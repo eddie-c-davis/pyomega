@@ -1,8 +1,6 @@
 # tests/test_console.py
 import sys
 import ast
-import click.testing
-import pytest
 
 sys.path.append("./src")
 from pyomega.parser import Parser
@@ -10,16 +8,11 @@ from pyomega.parser import Parser
 
 test_exprs = (
     "s0 = {[i, j]: 0 <= i < N ^ 0 <= j < M}",
-    "s1 = {[i, j]: 0 <= i < N ^ 0 <= j < col(i)}",
+    "s1 = {[i, j]: 0 <= i < N ^ rp(i) <= j < rp(i + 1)}",
 )
 
 
-@pytest.fixture
-def runner():
-    return click.testing.CliRunner()
-
-
-def test_ast(runner):
+def test_ast():
     for expr in test_exprs:
         root = ast.parse(expr)
         assert isinstance(root, ast.Module)
@@ -27,7 +20,7 @@ def test_ast(runner):
         assert isinstance(root.body[0], ast.Assign)
 
 
-def test_parser(runner):
+def test_parser():
     for expr in test_exprs:
         space = Parser(expression=expr).parse()
         assert space.name[0] == "s"

@@ -71,11 +71,31 @@ class Parser(ast.NodeVisitor):
             return "="
         elif isinstance(node, ast.NotEq):
             return "!="
+        elif isinstance(node, ast.Add):
+            return "+"
+        elif isinstance(node, ast.Sub):
+            return "-"
+        elif isinstance(node, ast.Mult):
+            return "*"
+        elif isinstance(node, (ast.Div, ast.FloorDiv)):
+            return "/"
+        elif isinstance(node, (ast.Div, ast.Pow)):
+            # TODO: Are exponents supported in Presburger expressions?
+            return "**"
         raise TypeError("Unrecognized operator: " + str(node))
 
     def visit_Call(self, node: ast.Call):
-        # TODO: Handle args...
-        return ir.Function(name=node.func.id)
+        func: ir.Function = ir.Function(node.func.id, list())
+        for arg in node.args:
+            func.add(self.visit(arg))
+        return func
+
+    def visit_BinOp(self, node: ast.BinOp):
+        bin_op = ir.BinOp()
+        bin_op.left = self.visit(node.left)
+        bin_op.op = self.visit_Op(node.op)
+        bin_op.right = self.visit(node.right)
+        return bin_op
 
     def visit_Compare(self, node: ast.Compare):
         # TODO: Generalize this method...
