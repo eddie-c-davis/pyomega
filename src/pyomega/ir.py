@@ -9,6 +9,7 @@ from typing import Dict, List
 Implementation of the intermediate representations used in PyOmega.
 """
 
+
 @dataclass
 class Node:
     children: List = ()
@@ -17,21 +18,26 @@ class Node:
     def id(self):
         return id(self)
 
+
 @dataclass
 class Iterator(Node):
     name: str = ""
+
 
 @dataclass
 class Literal(Node):
     value: str = ""
 
+
 @dataclass
 class Function(Node):
     name: str = ""
 
+
 @dataclass
 class Constant(Node):
     name: str = ""
+
 
 @dataclass
 class Relation(Node):
@@ -42,8 +48,13 @@ class Relation(Node):
     right_op: str = ""
     right: Node = None
 
+
 @dataclass
 class Space(Node):
     name: str = ""
     iterators: List[Iterator] = ()
-    constraints: List[Relation] = ()
+    relations: List[Relation] = ()
+
+    def __init__(self):
+        self.iterators = []
+        self.relations = []

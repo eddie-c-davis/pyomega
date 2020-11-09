@@ -30,4 +30,7 @@ def test_ast(runner):
 def test_parser(runner):
     for expr in test_exprs:
         space = Parser(expression=expr).parse()
-        assert space is not None
+        assert space.name[0] == "s"
+        assert space.iterators[0].name == "i"
+        assert space.iterators[1].name == "j"
+        assert len(space.relations) == 2
