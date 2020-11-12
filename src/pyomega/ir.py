@@ -67,3 +67,16 @@ class Space(Node):
     def __init__(self):
         self.iterators = []
         self.relations = []
+
+    def add_iterator(self, iterator: Iterator):
+        assert isinstance(iterator, Iterator)
+        self.iterators.append(iterator)
+
+    def add_relation(self, relation: Relation):
+        assert isinstance(relation, Relation)
+        exists = False
+        for n in range(len(self.relations) - 1, -1, -1):
+            exists = exists or relation.id == self.relations[n].id
+            if exists:
+                return
+        self.relations.append(relation)

@@ -53,7 +53,7 @@ class Parser(ast.NodeVisitor):
     def visit_Dict(self, node: ast.Dict):
         for key in node.keys:
             for elt in key.elts:
-                self.space.iterators.append(ir.Iterator(name=elt.id))
+                self.space.add_iterator(ir.Iterator(name=elt.id))
         for value in node.values:
             self.visit(value)
 
@@ -114,22 +114,35 @@ class Parser(ast.NodeVisitor):
             next_op = node.ops[n + 1]
 
             relation.left_op = self.visit_Op(op)
-            relation.mid = self.visit(comp)
-            relation.right_op = self.visit_Op(next_op)
+            if isinstance(comp, ast.BinOp):
+                relation.right = self.visit(comp.left)
+                self.space.add_relation(relation)
+                # Begin next relation...
+                relation = ir.Relation()
+                relation.left = self.visit(comp.right)
+                relation.left_op = self.visit_Op(next_op)
+            else:
+                relation.mid = self.visit(comp)
+                relation.right_op = self.visit_Op(next_op)
+
             if isinstance(next_comp, ast.BinOp):
                 relation.right = self.visit(next_comp.left)
-                self.space.relations.append(relation)
+                self.space.add_relation(relation)
                 # Begin next relation...
                 relation = ir.Relation()
                 relation.left = self.visit(next_comp.right)
             else:
                 relation.right = self.visit(next_comp)
-                self.space.relations.append(relation)
+                self.space.add_relation(relation)
 
         if has_remaining:
-            relation.left_op = self.visit_Op(node.ops[-1])
+            if relation.right:
+                relation.mid = relation.right
+                relation.right_op = self.visit_Op(node.ops[-1])
+            else:
+                relation.left_op = self.visit_Op(node.ops[-1])
             relation.right = self.visit(node.comparators[-1])
-            self.space.relations.append(relation)
+            self.space.add_relation(relation)
 
     def visit_Num(self, node: ast.Num):
         return ir.Literal(value=str(node.n))

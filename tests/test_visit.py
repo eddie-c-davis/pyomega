@@ -29,6 +29,7 @@ def test_spmv():
     codegen_test(expr)
 
 
-# def test_krp():
-#     expr = "krp = {[p, i, q, j, n, k, r]: 0 <= p < F ^ i==ind0(p) ^ pos0(p) <= q < pos0(p+1) ^ j==ind1(q) ^ pos1(q) <= n < pos1(q+1) ^ k==ind2(n) ^ 0 <= r < R}"
-#     codegen_test(expr)
+def test_krp():
+    expr = "krp = {[n, i, j, k, r]: 0 <= n < M ^ i == ind0(n) ^ j == ind1(n) ^ k == ind2(n) ^ 0 <= r < R}"
+    # expr = "krp = {[p, i, q, j, n, k, r]: 0 <= p < F ^ i == ind0(p) ^ pos0(p) <= q < pos0(p+1) ^ j == ind1(q) ^ pos1(q) <= n < pos1(q+1) ^ k == ind2(n) ^ 0 <= r < R}"
+    codegen_test(expr)

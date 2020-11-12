@@ -15,8 +15,8 @@
                 // "run",
                 // "pytest",
                 // "-k",
-                // "test_spmv",
-                "./tests/test_ir.py"
+                // "test_krp",
+                "./tests/test_visit.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"
                 //"64"
