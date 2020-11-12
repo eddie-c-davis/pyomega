@@ -15,8 +15,8 @@
                 // "run",
                 // "pytest",
                 "-k",
-                "test_codegen",
-                "./tests/test_visit.py"
+                "test_parser",
+                "./tests/test_ir.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"
                 //"64"

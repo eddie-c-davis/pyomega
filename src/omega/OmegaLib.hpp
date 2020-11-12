@@ -425,15 +425,6 @@ public:
                 givens += given;
             }
 
-            //if (!iters.empty()) {
-//                for (const string& iter : iters) {
-//                    if (iterlist.empty()) {
-//                        iterlist = iter;
-//                    } else if (iterlist.find(iter) == string::npos) {
-//                        iterlist += "," + iter;
-//                    }
-//                }
-
             if (iters.size() > maxiters.size()) {
                 maxiters = iters;
             }
@@ -445,7 +436,6 @@ public:
             if (iters.size() > _iterators.size()) {
                 _iterators = iters;
             }
-            //}
 
             merge_ufuncs(ufuncs, _ufuncs);
             newmap[relname] = result;
@@ -682,7 +672,7 @@ public:
         }
 
         _ufuncs = ufuncs;
-        cerr << oss.str();
+        // cerr << oss.str();
 
         return parse(oss.str());
     }

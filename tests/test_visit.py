@@ -10,6 +10,7 @@ from pyomega.visit import CodeGenVisitor
 test_exprs = (
     "s0 = {[i, j]: 0 <= i < N ^ 0 <= j < M}",
     "s1 = {[i, j]: 0 <= i < N ^ rp(i) <= j < rp(i + 1)}",
+    "s2 = {[i, j, k]: 0 <= i < N ^ 0 <= j < M ^ 0 <= k < K}",
 )
 
 

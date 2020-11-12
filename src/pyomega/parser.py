@@ -16,7 +16,6 @@ class Parser(ast.NodeVisitor):
     expression: str = ""
     root: ast.Module = None
     space: ir.Space = ir.Space()
-    relation: ir.Relation = ir.Relation()
 
     def __init__(self, node: ast.Module = None, expression: str = ""):
         if node is None:
@@ -100,25 +99,27 @@ class Parser(ast.NodeVisitor):
         return bin_op
 
     def visit_Compare(self, node: ast.Compare):
-        # TODO: Generalize this method...
-        assert len(node.comparators) == 4
+        relation = ir.Relation()
+        relation.left = self.visit(node.left)
 
-        self.relation = ir.Relation()
-        self.relation.left = self.visit(node.left)
-        self.relation.left_op = self.visit_Op(node.ops[0])
-        self.relation.mid = self.visit(node.comparators[0])
-        self.relation.right_op = self.visit_Op(node.ops[1])
-        assert isinstance(node.comparators[1], ast.BinOp)
-        self.relation.right = self.visit(node.comparators[1].left)
-        self.space.relations.append(self.relation)
+        for n in range(0, len(node.comparators), 2):
+            comp = node.comparators[n]
+            op = node.ops[n]
+            next_comp = node.comparators[n + 1]
+            next_op = node.ops[n + 1]
 
-        self.relation = ir.Relation()
-        self.relation.left = self.visit(node.comparators[1].right)
-        self.relation.left_op = self.visit_Op(node.ops[2])
-        self.relation.mid = self.visit(node.comparators[2])
-        self.relation.right_op = self.visit_Op(node.ops[3])
-        self.relation.right = self.visit(node.comparators[3])
-        self.space.relations.append(self.relation)
+            relation.left_op = self.visit_Op(op)
+            relation.mid = self.visit(comp)
+            relation.right_op = self.visit_Op(next_op)
+            if isinstance(next_comp, ast.BinOp):
+                relation.right = self.visit(next_comp.left)
+                self.space.relations.append(relation)
+                # Begin next relation...
+                relation = ir.Relation()
+                relation.left = self.visit(next_comp.right)
+            else:
+                relation.right = self.visit(next_comp)
+                self.space.relations.append(relation)
 
     def visit_Num(self, node: ast.Num):
         return ir.Literal(value=str(node.n))
