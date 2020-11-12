@@ -67,7 +67,7 @@ class Parser(ast.NodeVisitor):
         elif isinstance(node, ast.Gt):
             return ">"
         elif isinstance(node, ast.Eq):
-            return "="
+            return "=="
         elif isinstance(node, ast.NotEq):
             return "!="
         elif isinstance(node, ast.Add):
@@ -102,7 +102,12 @@ class Parser(ast.NodeVisitor):
         relation = ir.Relation()
         relation.left = self.visit(node.left)
 
-        for n in range(0, len(node.comparators), 2):
+        n_comparators = len(node.comparators)
+        has_remaining = n_comparators % 2 > 0
+        if has_remaining:
+            n_comparators -= 1
+
+        for n in range(0, n_comparators, 2):
             comp = node.comparators[n]
             op = node.ops[n]
             next_comp = node.comparators[n + 1]
@@ -120,6 +125,11 @@ class Parser(ast.NodeVisitor):
             else:
                 relation.right = self.visit(next_comp)
                 self.space.relations.append(relation)
+
+        if has_remaining:
+            relation.left_op = self.visit_Op(node.ops[-1])
+            relation.right = self.visit(node.comparators[-1])
+            self.space.relations.append(relation)
 
     def visit_Num(self, node: ast.Num):
         return ir.Literal(value=str(node.n))

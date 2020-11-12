@@ -7,16 +7,28 @@ from pyomega.parser import Parser
 from pyomega.visit import CodeGenVisitor
 
 
-test_exprs = (
-    "s0 = {[i, j]: 0 <= i < N ^ 0 <= j < M}",
-    "s1 = {[i, j]: 0 <= i < N ^ rp(i) <= j < rp(i + 1)}",
-    "s2 = {[i, j, k]: 0 <= i < N ^ 0 <= j < M ^ 0 <= k < K}",
-)
+def codegen_test(expr):
+    space = Parser(expression=expr).parse()
+    visitor = CodeGenVisitor()
+    source = visitor(space)
+    assert source == expr
 
 
-def test_codegen():
-    for expr in test_exprs:
-        space = Parser(expression=expr).parse()
-        visitor = CodeGenVisitor()
-        source = visitor(space)
-        assert source == expr
+def test_2d():
+    expr = "s2d = {[i, j]: 0 <= i < N ^ 0 <= j < M}"
+    codegen_test(expr)
+
+
+def test_3d():
+    expr = "s3d = {[i, j, k]: 0 <= i < N ^ 0 <= j < M ^ 0 <= k < K}"
+    codegen_test(expr)
+
+
+def test_spmv():
+    expr = "spmv = {[i, n, j]: 0 <= i < N ^ rp(i) <= n < rp(i + 1) ^ j == col(n)}"
+    codegen_test(expr)
+
+
+# def test_krp():
+#     expr = "krp = {[p, i, q, j, n, k, r]: 0 <= p < F ^ i==ind0(p) ^ pos0(p) <= q < pos0(p+1) ^ j==ind1(q) ^ pos1(q) <= n < pos1(q+1) ^ k==ind2(n) ^ 0 <= r < R}"
+#     codegen_test(expr)

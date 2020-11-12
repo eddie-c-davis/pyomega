@@ -81,13 +81,11 @@ class CodeGenVisitor(Visitor):
         )
 
     def visit_Relation(self, node: Relation) -> str:
-        return "{left} {left_op} {mid} {right_op} {right}".format(
-            left=self.visit(node.left),
-            left_op=node.left_op,
-            mid=self.visit(node.mid),
-            right_op=node.right_op,
-            right=self.visit(node.right),
-        )
+        code = "{left} {left_op}".format(left=self.visit(node.left), left_op=node.left_op)
+        if node.mid:
+            code += " {mid} {right_op}".format(mid=self.visit(node.mid), right_op=node.right_op)
+        code += " {right}".format(right=self.visit(node.right))
+        return code
 
     def visit_Function(self, node: Function) -> str:
         return "{name}({args})".format(
