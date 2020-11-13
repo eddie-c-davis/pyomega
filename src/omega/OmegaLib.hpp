@@ -368,6 +368,19 @@ protected:
         }
     }
 
+    void omega_cmd(const string& code, ostream& os) {
+        string exec = "/usr/local/bin/omegacalc";
+        string file = "/tmp/omega.in";
+
+        ofstream ofs(file.c_str());
+        ofs << code << endl;
+        ofs.close();
+
+        string cmd = exec + " " + file;
+        string res = OS::run(cmd);
+        os << res;
+    }
+
 public:
     vector<string> in_iterators() const {
         return _iterators;
@@ -381,9 +394,17 @@ public:
         return outiters;
     }
 
+    string codegen(map<string, string>& relmap,
+                   map<string, vector<string> >& schedmap) {
+        vector<string> names(relmap.size());
+        for (auto& it: relmap) {
+            names.emplace_back(it.first);
+        }
+        return codegen(names, relmap, schedmap);
+    }
+
     string codegen(const vector<string>& names, map<string, string>& relmap,
                    map<string, vector<string> >& schedmap) {
-        //string iterlist;
         string symlist;
         string givens;
         string cgexpr;
@@ -445,7 +466,6 @@ public:
         if (!symlist.empty()) {
             oss << "symbolic " << symlist << ";\n";
         }
-        //if (!iterlist.empty()) {
         if (!maxiters.empty()) {
             for (const string& name : names) {
                 oss << name << " := " << newmap[name] << ";\n";
@@ -461,8 +481,8 @@ public:
             oss << ";\n";
         }
 
-        cerr << oss.str();
-        return parse(oss.str(), nstatements);
+        // cerr << oss.str();
+        return run(oss.str(), nstatements);
     }
 
     /// TODO: This is the legacy version of 'codegen', verify unit tests and then remove it!
@@ -674,10 +694,10 @@ public:
         _ufuncs = ufuncs;
         // cerr << oss.str();
 
-        return parse(oss.str());
+        return run(oss.str());
     }
 
-    string parse(const string& code, unsigned nstatements = 1) {
+    string run(const string& code, unsigned nstatements = 1) {
         vector<string> lines;
         if (!code.empty()) {
             istringstream iss(code);
@@ -692,19 +712,6 @@ public:
             lines.emplace_back("");
         }
         return Strings::join(lines, "\n");
-    }
-
-    void omega_cmd(const string& code, ostream& os) {
-        string exec = "/usr/local/bin/omegacalc";
-        string file = "/tmp/omega.in";
-
-        ofstream ofs(file.c_str());
-        ofs << code << endl;
-        ofs.close();
-
-        string cmd = exec + " " + file;
-        string res = OS::run(cmd);
-        os << res;
     }
 
     map<string, string> macros() {
