@@ -1,5 +1,5 @@
-#ifndef OMEGALIB_HPP
-#define OMEGALIB_HPP
+// #ifndef OMEGALIB_HPP
+// #define OMEGALIB_HPP
 
 #include <algorithm>
 using std::find;
@@ -29,6 +29,9 @@ using util::OS;
 
 using namespace omega;
 
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+
 #define ASN_OP ":="
 #define PROMPT ">>>"
 
@@ -37,7 +40,7 @@ using namespace omega;
 
 int omega_run(std::istream *is, std::ostream *os);
 
-namespace omglib {
+namespace pyomega {
 struct UninterpFunc {
     string name;
     vector<string> args;
@@ -394,8 +397,9 @@ public:
         return outiters;
     }
 
+    // Pybind11 Me!
     string codegen(map<string, string>& relmap,
-                   map<string, vector<string> >& schedmap) {
+                   map<string, vector<string> >& schedmap) const {
         vector<string> names(relmap.size());
         for (auto& it: relmap) {
             names.emplace_back(it.first);
@@ -404,7 +408,7 @@ public:
     }
 
     string codegen(const vector<string>& names, map<string, string>& relmap,
-                   map<string, vector<string> >& schedmap) {
+                   map<string, vector<string> >& schedmap) const {
         string symlist;
         string givens;
         string cgexpr;
@@ -731,4 +735,17 @@ public:
 };
 }
 
-#endif  // OMEGALIB_HPP
+using pyomega::OmegaLib;
+
+// map<string, string>& relmap,
+// map<string, vector<string> >& schedmap
+
+PYBIND11_MODULE(pyomega, mod) {
+    mod.doc() = "pybind11 bindings for pyomega";
+    // bindings to OmegaLib class
+    py::class_<OmegaLib>(m, "OmegaLib")
+        .def("codegen", &OmegaLib::codegen, "Generate code with CodeGen++", py::arg("code") = "", py::arg("n_statements") = 1)
+        .def("run", &OmegaLib::run, "Run Omega+ statements", py::arg("rel_map") = "", py::arg("sched_map") = "");
+}
+
+// #endif  // OMEGALIB_HPP
