@@ -27,6 +27,7 @@ using util::OS;
 using namespace omega;
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 namespace py = pybind11;
 
 #define ASN_OP ":="
@@ -37,7 +38,7 @@ namespace py = pybind11;
 
 int omega_run(std::istream *is, std::ostream *os);
 
-namespace pyomega {
+namespace omega {
 struct UninterpFunc {
     string name;
     vector<string> args;
@@ -90,7 +91,6 @@ struct UninterpFunc {
     }
 };
 
-//struct OmegaLib : public PolyLib {
 struct OmegaLib {
 protected:
     vector<string> _kwords = {"exists", "union", "intersection", "complement", "compose", "inverse",
@@ -382,6 +382,8 @@ protected:
     }
 
 public:
+    OmegaLib() {}
+
     vector<string> in_iterators() const {
         return _iterators;
     }
@@ -519,12 +521,20 @@ public:
 };
 }
 
-using pyomega::OmegaLib;
+using omega::OmegaLib;
 
-PYBIND11_MODULE(pyomega, mod) {
-    mod.doc() = "pybind11 bindings for pyomega";
+PYBIND11_MODULE(omega, mod) {
+    mod.doc() = "pybind11 bindings for omega";
     // bindings to OmegaLib class
     py::class_<OmegaLib>(mod, "OmegaLib")
-        .def("codegen", &OmegaLib::codegen)
-        .def("run", &OmegaLib::run);
+        .def(py::init<>())
+        .def("codegen", &OmegaLib::codegen, "Generate code using CodeGen+")
+        .def("run", &OmegaLib::run, "Run Omega+ statements");
+
+#define VERSION_INFO "0.1.0"
+#ifdef VERSION_INFO
+    mod.attr("__version__") = VERSION_INFO;
+#else
+    mod.attr("__version__") = "dev";
+#endif
 }

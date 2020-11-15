@@ -7,11 +7,11 @@ from setuptools_cpp import CMakeExtension, ExtensionBuilder, Pybind11Extension
 
 ext_modules = [
     # A basic pybind11 extension in <project_root>/src/ext1:
-    # Pybind11Extension(
-    #     "pyomega.omega", ["src/omega/bindings/.cpp"], include_dirs=["src/ext1/include"]
-    # ),
+    Pybind11Extension(
+        "pyomega.omega", ["src/omega/chill/omega/OmegaLib.cpp"], include_dirs=["src/omega"]
+    ),
     # An extension with a custom <project_root>/src/ext2/CMakeLists.txt:
-    CMakeExtension(f"pyomega.omega", sourcedir="src/omega"),
+    CMakeExtension(f"pyomega.omega", sourcedir="src/omega/CMakeLists.txt"),
 ]
 
 

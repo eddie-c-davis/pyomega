@@ -1,9 +1,12 @@
 # src/pyomega/visit.py
 import collections
+import sys
 
 from dataclasses import asdict, dataclass
 from typing import Dict, List
 
+sys.path.append("./src/omega")
+from omega import OmegaLib
 from pyomega.ir import *
 
 
@@ -53,7 +56,18 @@ class CodeGenVisitor(Visitor):
         assert isinstance(root, Space)
         self.root = root
         self.source = self.visit(root)
-        return self.source
+        return self.codegen()
+
+    def codegen(self) -> str:
+        name: str = self.root.name
+        iterators = [iterator.name for iterator in self.root.iterators]
+        schedule: str = "[0, {iterators}]".format(iterators=", 0, ".join(iterators))
+        rel_map: Dict[str, str] = {name: self.source}
+        sched_map: Dict[str, List[str]] = {name: [schedule]}
+
+        omega_lib = OmegaLib()
+        code = omega_lib.codegen(rel_map, sched_map, [name])
+        return code
 
     def visit_Space(self, node: Space) -> str:
         source = f"{node.name} = {{"

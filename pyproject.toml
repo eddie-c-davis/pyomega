@@ -11,13 +11,14 @@ version = "0.1.0"
 # build = "build.py"
 
 [tool.poetry.dependencies]
+astor = "^0.8.1"
 black = "^20.8b1"
 click = "^7.1.2"
 flake8 = "^3.8.4"
 pybind11 = "^2.6.0"
 python = "^3.7"
 setuptools-cpp = "^0.1.0"
-astor = "^0.8.1"
+omega = {path = "src/omega"}
 
 [tool.poetry.dev-dependencies]
 coverage = {extras = ["toml"], version = "^5.3"}
@@ -27,7 +28,7 @@ pytest-mock = "^3.3.1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.0", "wheel", "setuptools-cpp"]
+requires = ["poetry-core>=1.0.0", "wheel", "setuptools-cpp", "pybind11==2.6.0"]
 
 [tool.poetry.scripts]
 pyomega = "pyomega.console:main"

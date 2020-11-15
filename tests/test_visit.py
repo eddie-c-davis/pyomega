@@ -1,4 +1,4 @@
-# tests/test_console.py
+# tests/test_visit.py
 import sys
 import ast
 
