@@ -55,18 +55,29 @@ class CodeGenVisitor(Visitor):
     def __call__(self, root: Space) -> str:
         assert isinstance(root, Space)
         self.root = root
-        self.source = self.visit(root)
+        self.constraints: List[str] = []
+        self.source: str = self.visit(root)
         return self.codegen()
 
     def codegen(self) -> str:
         name: str = self.root.name
         iterators = [iterator.name for iterator in self.root.iterators]
-        schedule: str = "[0, {iterators}]".format(iterators=", 0, ".join(iterators))
-        rel_map: Dict[str, str] = {name: self.source}
+        schedule: str = "r0{name} := {{[{iterators}] -> [0, {tuple}, 0]}}".format(
+            name=name, iterators=", ".join(iterators), tuple=", 0, ".join(iterators)
+        )
+
+        relation = self.source[self.source.find(" = ") + 3 :]
+        rel_map: Dict[str, str] = {name: relation}
         sched_map: Dict[str, List[str]] = {name: [schedule]}
 
-        omega_lib = OmegaLib()
-        code = omega_lib.codegen(rel_map, sched_map, [name])
+        code = OmegaLib().codegen(rel_map, sched_map, [name], self.constraints).rstrip()
+        if "error" in code.lower():
+            raise RuntimeError(code)
+
+        # Strip outer 'if' statement if existent...
+        if code.startswith("if"):
+            code = code[code.find("{") + 1:].lstrip()
+            code = code[0:code.rfind("}") - 1].rstrip()
         return code
 
     def visit_Space(self, node: Space) -> str:
@@ -76,7 +87,7 @@ class CodeGenVisitor(Visitor):
         if len(node.relations) > 0:
             source += ": "
             relations = [self.visit(relation) for relation in node.relations]
-            source += " ^ ".join(relations)
+            source += " && ".join(relations)
         source += "}"
         return source
 
@@ -84,6 +95,7 @@ class CodeGenVisitor(Visitor):
         return node.name
 
     def visit_Constant(self, node: Constant) -> str:
+        self.constraints.append(f"{node.name} >= 1")
         return node.name
 
     def visit_Literal(self, node: Literal) -> str:
@@ -95,9 +107,13 @@ class CodeGenVisitor(Visitor):
         )
 
     def visit_Relation(self, node: Relation) -> str:
-        code = "{left} {left_op}".format(left=self.visit(node.left), left_op=node.left_op)
+        code = "{left} {left_op}".format(
+            left=self.visit(node.left), left_op=node.left_op
+        )
         if node.mid:
-            code += " {mid} {right_op}".format(mid=self.visit(node.mid), right_op=node.right_op)
+            code += " {mid} {right_op}".format(
+                mid=self.visit(node.mid), right_op=node.right_op
+            )
         code += " {right}".format(right=self.visit(node.right))
         return code
 

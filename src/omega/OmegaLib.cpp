@@ -399,7 +399,8 @@ public:
     // Pybind11 Me!
     string codegen(map<string, string>& relmap,
                    map<string, vector<string> >& schedmap,
-                   const vector<string>& in_names = {}) {
+                   const vector<string>& names_in = {},
+                   const vector<string>& givens_in = {}) {
         string symlist;
         string givens;
         string cgexpr;
@@ -408,11 +409,15 @@ public:
         vector<string> allschedules;
         vector<string> maxiters;
 
-        vector<string> names = in_names;
+        vector<string> names = names_in;
         if (names.size() < 1) {
             for (auto& it: relmap) {
                 names.emplace_back(it.first);
             }
+        }
+
+        if (givens_in.size() > 0) {
+            givens = Strings::join(givens_in, "&&");
         }
 
         unsigned nstatements = 1;
@@ -493,7 +498,6 @@ public:
             istringstream iss(code);
             ostringstream oss;
             omega_run(&iss, &oss);
-            //oss << "for (t1 = 0; t1 < N; t1++) {\nprintf(\"Omega+ dies in pain!\\n\");\n}\n";
             lines = Strings::filter(Strings::split(oss.str(), '\n'), PROMPT, true);
         } else {
             for (unsigned i = 0; i < nstatements; i++) {
