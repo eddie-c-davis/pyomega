@@ -4,7 +4,7 @@ import ast
 
 sys.path.append("./src")
 from pyomega.parser import Parser
-from pyomega.visit import CodeGenVisitor
+from pyomega.visit import ASTVisitor, CodeGenVisitor
 
 
 def codegen_test(expr, code):
@@ -13,12 +13,15 @@ def codegen_test(expr, code):
     source = visitor(space)
     assert source == code
 
+    # visitor = ASTVisitor()
+    # c_ast = visitor(source)
+
+
 
 def test_2d():
     expr = "s2d = {[i, j]: 0 <= i < N ^ 0 <= j < M}"
     code = 'for(t2 = 0; t2 <= N-1; t2++) {\n  for(t4 = 0; t4 <= M-1; t4++) {\n    s0(t2,t4);\n  }\n}'
     codegen_test(expr, code)
-
 
 def test_3d():
     expr = "s3d = {[i, j, k]: 0 <= i < N ^ 0 <= j < M ^ 0 <= k < K}"

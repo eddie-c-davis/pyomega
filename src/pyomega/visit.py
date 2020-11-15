@@ -3,6 +3,7 @@ import collections
 import sys
 
 from dataclasses import asdict, dataclass
+from pycparser import c_parser, c_ast
 from typing import Dict, List
 
 sys.path.append("./src/omega")
@@ -121,3 +122,14 @@ class CodeGenVisitor(Visitor):
         return "{name}({args})".format(
             name=node.name, args=", ".join([self.visit(arg) for arg in node.args])
         )
+
+
+class ASTVisitor(Visitor):
+    code: str = ""
+
+    def __call__(self, code: str) -> str:
+        self.code = "int t2,t4,t6,t8,t10,t12,t14,t16,N,M;\n" + code  # .replace('\n', " ")
+        parser = c_parser.CParser()
+        ast = parser.parse(self.code, filename='<none>')
+        stop=1
+
