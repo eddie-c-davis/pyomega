@@ -1,6 +1,3 @@
-// #ifndef OMEGALIB_HPP
-// #define OMEGALIB_HPP
-
 #include <algorithm>
 using std::find;
 using std::sort;
@@ -399,16 +396,8 @@ public:
 
     // Pybind11 Me!
     string codegen(map<string, string>& relmap,
-                   map<string, vector<string> >& schedmap) const {
-        vector<string> names(relmap.size());
-        for (auto& it: relmap) {
-            names.emplace_back(it.first);
-        }
-        return codegen(names, relmap, schedmap);
-    }
-
-    string codegen(const vector<string>& names, map<string, string>& relmap,
-                   map<string, vector<string> >& schedmap) const {
+                   map<string, vector<string> >& schedmap,
+                   const vector<string>& in_names = {}) {
         string symlist;
         string givens;
         string cgexpr;
@@ -416,6 +405,13 @@ public:
         map<string, string> newmap;
         vector<string> allschedules;
         vector<string> maxiters;
+
+        vector<string> names = in_names;
+        if (names.size() < 1) {
+            for (auto& it: relmap) {
+                names.emplace_back(it.first);
+            }
+        }
 
         unsigned nstatements = 1;
         for (const string& name : names) {
@@ -489,218 +485,6 @@ public:
         return run(oss.str(), nstatements);
     }
 
-    /// TODO: This is the legacy version of 'codegen', verify unit tests and then remove it!
-    string codegen(const string& relation, const string& id = "I", const vector<string>& schedules = {}) {
-        map<string, size_t> symcons;
-        map<string, UninterpFunc> ufuncs;
-
-        vector<string> iters;
-        vector<string> conds;
-        vector<string> exists;
-        vector<string> knowns;
-
-        string relId, relStr;
-        string condStr;
-        string iterStr;
-        string symList;
-
-        size_t pos = relation.find(ASN_OP);
-        if (pos != string::npos) {
-            relId = Strings::rtrim(relation.substr(0, pos - 1));
-            relStr = Strings::ltrim(relation.substr(pos + 2));
-        } else {
-            relId = id;
-            relStr = relation;
-        }
-
-        string result = Strings::removeWhitespace(relStr);
-
-        pos = result.find(':');
-        if (pos != string::npos) {
-            iterStr = result.substr(2, pos - 3);
-            iters = Strings::split(iterStr, ',');
-
-            condStr = Strings::rtrim(result.substr(pos + 1), '}');
-            conds = Strings::split(condStr, "&&");
-        }
-
-        // Collect conditions and uninterpreted functions...
-        for (const string& cond : conds) {
-            pos = cond.find("exists(");
-            if (pos != string::npos) {
-                vector<string> evars = Strings::split(cond.substr(pos + 7, cond.find(':', pos + 7)), ',');
-                for (const string& evar : evars) {
-                    exists.push_back(evar);
-                }
-            }
-
-            vector<string> items = Strings::words(cond);
-            for (const string& item : items) {
-                string lcitem = Strings::lower(item);
-                if (!IN(iters, item) && !IN(_kwords, lcitem)) {
-                    if (Strings::in(result, item + '(') && ufuncs.find(item) == ufuncs.end()) {
-                        UninterpFunc ufunc(item, 1, ufuncs.size());
-                        ufuncs[item] = ufunc;
-                    }
-                    if (symcons.find(item) == symcons.end() && ufuncs.find(item) == ufuncs.end() &&
-                        find(exists.begin(), exists.end(), item) == exists.end()) {
-                        symcons[item] = symcons.size();
-                    }
-                }
-            }
-            if (isknown(cond, iters, exists)) {
-                knowns.push_back(cond);
-            }
-        }
-
-        // Separate set string for codegen argument from those for given clause.
-        string given;
-        if (LEN(knowns) > 0) {
-            for (const string& known : knowns) {
-                conds.erase(find(conds.begin(), conds.end(), known));
-            }
-            result = Strings::replace(result, condStr, Strings::join(conds, "&&"));
-            given = "{[" + Strings::join(iters, ",") + "]: " + Strings::join(knowns, "&&") + "}";
-        }
-
-        if (!symcons.empty()) {
-            vector<string> symkeys = Lists::keys<string, size_t>(symcons);
-            symList = Strings::join(symkeys, ",") + ",";
-        }
-
-        // U-funcs are tricky, need to consider the args...
-        // 1st Pass: Collect all data on u-funcs.
-        map<string, UninterpFunc> newfuncs;
-        for (auto ufpair : ufuncs) {
-            string ufname = ufpair.first;
-            UninterpFunc ufunc = ufpair.second;
-
-            vector<string> arglists;
-            size_t fpos = result.find(ufname);
-            while (fpos >= 0 && fpos != string::npos) {
-                fpos += LEN(ufname);
-                size_t lpos = result.find('(', fpos);
-                size_t rpos = result.find(')', lpos + 1);
-                string sub = result.substr(lpos + 1, rpos - lpos - 1);
-                if (!IN(arglists, sub)) {
-                    arglists.push_back(sub);
-                }
-                fpos = result.find(ufname, rpos + 1);
-            }
-
-            std::sort(arglists.begin(), arglists.end());
-            for (const string& arglist : arglists) {
-                vector<string> args = Strings::split(arglist, ',');
-                ufunc.arity = LEN(args);
-                for (unsigned i = 0; i < ufunc.arity; i++) {
-                    string arg = args[i];
-                    if (ufunc.num_args() <= i) {  // New arg!
-                        // Check whether arg is an iterator
-                        if (!IN(iters, arg)) {
-                            ufunc.oldArgs.push_back(arg);
-                            arg = getiter(arg, iters);
-                        }
-                        ufunc.add_arg(arg);
-                    } else if (arg != ufunc.args[i]) {
-                        UninterpFunc newfunc = UninterpFunc(ufunc);
-                        newfunc.oldName = ufunc.name;
-                        if (Strings::isDigit(newfunc.name[newfunc.name.size() - 1])) {
-                            newfunc.name += "_";
-                        }
-                        newfunc.name += to_string(i + 1);
-                        newfunc.oldArgs.push_back(arg);
-                        newfuncs[newfunc.name] = newfunc;
-                    }
-                }
-            }
-            newfuncs[ufname] = ufunc;
-        }
-
-        ufuncs = newfuncs;
-        newfuncs.clear();
-
-        // 2nd Pass: To prevent prefix errors, need to ensure leading arg includes preceding iterators...
-        for (auto ufpair : ufuncs) {
-            UninterpFunc ufunc = ufpair.second;
-            if (ufunc.arity > 0) {
-                ufunc.oldArity = ufunc.arity;
-                vector<string> newargs;
-                for (const string& arg : ufunc.args) {
-                    if (IN(iters, arg)) {
-                        newargs = Lists::slice<string>(iters, 0, Lists::index<string>(iters, arg) - 1);
-                        break;
-                    }
-                }
-                ufunc.arity += LEN(newargs);
-                if (LEN(ufunc.oldArgs) < 1) {
-                    ufunc.oldArgs = ufunc.args;
-                }
-                for (const string& arg : newargs) {
-                    ufunc.args.insert(ufunc.args.end() - 1, arg);
-                }
-            }
-            symList += ufunc.name + '(' + to_string(ufunc.arity) + "),";
-            newfuncs[ufpair.first] = ufunc;
-        }
-
-        ufuncs = newfuncs;
-
-        //  3rd Pass: Replace the occurrences of the UFs in the original relation...
-        for (auto ufpair : ufuncs) {
-            string ufname = ufpair.first;
-            UninterpFunc ufunc = ufpair.second;
-            string oldcall;
-            if (!ufunc.oldName.empty()) {
-                oldcall = ufunc.oldName + '(' + Strings::join(ufunc.oldArgs, ",") + ')';
-            } else if (ufunc.arity > ufunc.oldArity) {
-                oldcall = ufname + '(' + Strings::join(ufunc.oldArgs, ",") + ')';
-            }
-            if (!oldcall.empty()) {
-                string newcall = ufname + '(' + Strings::join(ufunc.args, ",") + ')';
-                if (oldcall != newcall) {
-                    result = Strings::replace(result, oldcall, newcall);
-                    given = Strings::replace(given, oldcall, newcall);
-                }
-            }
-        }
-
-        ostringstream oss;
-        if (!symList.empty()) {
-            symList = symList.substr(0, symList.size() - 1);
-            oss << "symbolic " << symList << ";\n";
-        }
-        if (!iterStr.empty()) {
-            oss << relId << " := " << result << ";\n";
-
-            string cgexpr;
-            if (!schedules.empty()) {
-                cgexpr = " ";
-                unsigned n = 0, nschedules = schedules.size();
-                for (const auto& sched : schedules) {
-                    oss << sched << ";\n";
-                    string schedId = sched.substr(0, sched.find(' '));
-                    cgexpr += schedId + ":" + relId;
-                    if (n < nschedules - 1) {
-                        cgexpr += ',';
-                    }
-                    n += 1;
-                }
-            } else {
-                cgexpr = '(' + relId + ')';
-            }
-            oss << "codegen" << cgexpr;
-            if (!given.empty()) {
-                oss << " given " << given;
-            }
-            oss << ";\n";
-        }
-
-        _ufuncs = ufuncs;
-        // cerr << oss.str();
-
-        return run(oss.str());
-    }
-
     string run(const string& code, unsigned nstatements = 1) {
         vector<string> lines;
         if (!code.empty()) {
@@ -737,15 +521,10 @@ public:
 
 using pyomega::OmegaLib;
 
-// map<string, string>& relmap,
-// map<string, vector<string> >& schedmap
-
 PYBIND11_MODULE(pyomega, mod) {
     mod.doc() = "pybind11 bindings for pyomega";
     // bindings to OmegaLib class
-    py::class_<OmegaLib>(m, "OmegaLib")
-        .def("codegen", &OmegaLib::codegen, "Generate code with CodeGen++", py::arg("code") = "", py::arg("n_statements") = 1)
-        .def("run", &OmegaLib::run, "Run Omega+ statements", py::arg("rel_map") = "", py::arg("sched_map") = "");
+    py::class_<OmegaLib>(mod, "OmegaLib")
+        .def("codegen", &OmegaLib::codegen)
+        .def("run", &OmegaLib::run);
 }
-
-// #endif  // OMEGALIB_HPP

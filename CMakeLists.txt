@@ -4,6 +4,9 @@ project(pyomega C CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -DPIC -Xpreprocessor -ftree-vectorize -funroll-all-loops -std=c++11 -Wdeprecated-declarations")
 
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+
 include_directories(
     src src/chill src/chill/omega
     src/chill/omega/basic/include
@@ -12,6 +15,7 @@ include_directories(
     src/chill/omega/parser
     src/util
     /usr/local/include/python3.7
+    ${PYTHON_INCLUDE_DIRS}
 )
 
 set(OMEGA_FILES
@@ -60,3 +64,4 @@ set(OMEGA_FILES
 )
 
 add_library(pyomega SHARED ${OMEGA_FILES})
+target_link_libraries(pyomega ${PYTHON_LIBRARIES})
