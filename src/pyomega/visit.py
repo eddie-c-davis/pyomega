@@ -56,7 +56,7 @@ class CodeGenVisitor(Visitor):
     def __call__(self, root: Space) -> str:
         assert isinstance(root, Space)
         self.root = root
-        self.constraints: List[str] = []
+        self.constants: List[str] = []
         self.source: str = self.visit(root)
         return self.codegen()
 
@@ -71,14 +71,24 @@ class CodeGenVisitor(Visitor):
         rel_map: Dict[str, str] = {name: relation}
         sched_map: Dict[str, List[str]] = {name: [schedule]}
 
-        code = OmegaLib().codegen(rel_map, sched_map, [name], self.constraints).rstrip()
+        constraints = [f"{constant} >= 1" for constant in self.constants]
+        code = OmegaLib().codegen(rel_map, sched_map, [name], constraints).rstrip()
         if "error" in code.lower():
             raise RuntimeError(code)
 
         # Strip outer 'if' statement if existent...
         if code.startswith("if"):
-            code = code[code.find("{") + 1:].lstrip()
-            code = code[0:code.rfind("}") - 1].rstrip()
+            code = code[code.find("{") + 1 :].lstrip()
+            code = code[0 : code.rfind("}") - 1].rstrip()
+
+        header = "void {name}(int {inputs}) {{\n  int".format(
+            name=name, inputs=", int ".join(self.constants)
+        )
+        omega_iters = [f"t{n * 2}" for n in range(1, len(iterators) + 1)]
+
+        code = "{header} {iterators};\n{code}\n}}".format(
+            header=header, iterators=", ".join(omega_iters), code=code
+        )
         return code
 
     def visit_Space(self, node: Space) -> str:
@@ -96,7 +106,7 @@ class CodeGenVisitor(Visitor):
         return node.name
 
     def visit_Constant(self, node: Constant) -> str:
-        self.constraints.append(f"{node.name} >= 1")
+        self.constants.append(node.name)
         return node.name
 
     def visit_Literal(self, node: Literal) -> str:
@@ -126,10 +136,12 @@ class CodeGenVisitor(Visitor):
 
 class ASTVisitor(Visitor):
     code: str = ""
+    root: c_ast.FuncDef = None
 
     def __call__(self, code: str) -> str:
-        self.code = "int t2,t4,t6,t8,t10,t12,t14,t16,N,M;\n" + code  # .replace('\n', " ")
+        self.code = code
         parser = c_parser.CParser()
-        ast = parser.parse(self.code, filename='<none>')
-        stop=1
-
+        ast = parser.parse(self.code, filename="<none>")
+        self.root = ast.ext[0]
+        assert isinstance(self.root, c_ast.FuncDef)
+        return self.root
