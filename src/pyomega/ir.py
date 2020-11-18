@@ -2,7 +2,7 @@
 import ast
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 """
@@ -80,3 +80,14 @@ class Space(Node):
             if exists:
                 return
         self.relations.append(relation)
+
+
+class Statement(Node):
+    number: int = 0
+    schedule: Tuple[int]
+
+
+class Computation(Node):
+    name: str = ""
+    space: Space = None
+    statements: List[Statement] = ()
