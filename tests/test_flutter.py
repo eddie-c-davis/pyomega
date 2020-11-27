@@ -7,21 +7,23 @@ from pyomega.flutter import *
 
 
 def test_root_widget():
-    materialApp = MaterialApp(
+    example_root_widget = MaterialApp(
         name="ExampleRootWidget",
-        members=dict(
+        elems=dict(
             home=Container(
-                members=dict(
+                elems=dict(
                     color="Colors.blueGrey",
                     child=Center(
-                        members=dict(
+                        elems=dict(
                             child=Text(
                                 text="Hey there!",
-                                style=Style(
-                                    name="TextStyle",
-                                    members=dict(
-                                        decoration="TextDecoration.none",
-                                        color="Colors.white",
+                                elems=dict(
+                                    style=Style(
+                                        name="TextStyle",
+                                        elems=dict(
+                                            decoration="TextDecoration.none",
+                                            color="Colors.white",
+                                        ),
                                     ),
                                 ),
                             )
@@ -29,6 +31,6 @@ def test_root_widget():
                     ),
                 )
             )
-        )
+        ),
     )
     assert True
