@@ -45,7 +45,10 @@ class Visitor:
     def visit(self, node: Node, **kwargs):
         """Visit a node."""
         method = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method, self.generic_visit)
+        visitor = getattr(self, method, None)
+        if visitor is None:  # Try parent class...
+            method = "visit_" + type(node).__bases__[0].__name__
+            visitor = getattr(self, method, self.generic_visit)
         return visitor(node, **kwargs)
 
 

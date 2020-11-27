@@ -7,8 +7,10 @@ from pyomega.flutter import *
 
 
 def test_root_widget():
-    example_root_widget = MaterialApp(
-        name="ExampleRootWidget",
+    # TODO: `MaterialApp` needs to be the `return_var`...
+    example_root_widget = MaterialApp("ExampleRootWidget")
+    example_root_widget.methods[0].return_var = Object(
+        type_name="MaterialApp",
         elems=dict(
             home=Container(
                 elems=dict(
@@ -33,4 +35,8 @@ def test_root_widget():
             )
         ),
     )
-    assert True
+    assert example_root_widget is not None
+
+    visitor = AppCodeGenerator()
+    flutter_code = visitor(example_root_widget)
+    assert len(flutter_code) > 0
