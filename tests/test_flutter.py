@@ -7,7 +7,6 @@ from pyomega.flutter import *
 
 
 def test_root_widget():
-    # TODO: `MaterialApp` needs to be the `return_var`...
     example_root_widget = MaterialApp("ExampleRootWidget")
     example_root_widget.methods[0].return_var = Object(
         type_name="MaterialApp",
@@ -21,7 +20,7 @@ def test_root_widget():
                                 text="Hey there!",
                                 elems=dict(
                                     style=Style(
-                                        name="TextStyle",
+                                        type_name="TextStyle",
                                         elems=dict(
                                             decoration="TextDecoration.none",
                                             color="Colors.white",
@@ -32,11 +31,14 @@ def test_root_widget():
                         )
                     ),
                 )
-            )
+            ),
+            title='"Hello World"',
         ),
     )
     assert example_root_widget is not None
 
-    visitor = AppCodeGenerator()
+    visitor = AppCodeGenerator(add_main=True)
     flutter_code = visitor(example_root_widget)
+    with open("/tmp/test_flutter.dart", "w") as file:
+        file.write(flutter_code)
     assert len(flutter_code) > 0

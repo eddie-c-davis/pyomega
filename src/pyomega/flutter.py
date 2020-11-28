@@ -1,4 +1,5 @@
 # src/pyomega/flutter.py
+import abc
 import ast
 
 from dataclasses import dataclass, field
@@ -21,7 +22,7 @@ Implementation of the intermediate representations used in PyOmega.
 
 
 @dataclass
-class Node:
+class Node(abc.ABC):
     @property
     def id(self) -> int:
         return id(self)
@@ -30,11 +31,23 @@ class Node:
     def parent_type(cls):
         return cls.__bases__[0]
 
+    @property
+    def parent_name(self):
+        parent_type = type(self).parent_type()
+        if hasattr(parent_type, "type_name"):
+            return parent_type.type_name
+        return parent_type.name
+
+    @property
+    def grandparent_name(self):
+        return super().parent_name
+
 
 @dataclass
 class Object(Node):
     name: str = ""
     type_name: str = "Object"
+    text: str = ""
     elems: Dict[str, Any] = _dict_factory
 
 
@@ -56,23 +69,26 @@ class Class(Node):
 
 @dataclass
 class Container(Object):
-    name: str = "Container"
+    name: str = ""
+    type_name: str = "Container"
 
 
 @dataclass
 class Center(Container):
-    name: str = "Center"
+    name: str = ""
+    type_name: str = "Center"
 
 
 @dataclass
 class Text(Container):
-    name: str = "Text"
-    text: str = ""
+    name: str = ""
+    type_name: str = "Text"
 
 
 @dataclass
 class Style(Container):
-    name: str = "Style"
+    name: str = ""
+    type_name: str = "Style"
 
 
 @dataclass
@@ -116,10 +132,6 @@ class App(StatelessWidget):
     )
     elems: Dict[str, Any] = _dict_factory
 
-    @property
-    def parent_name(self):
-        return type(self).parent_type().name
-
 
 @dataclass
 class MaterialApp(App):
@@ -139,6 +151,8 @@ Code generators...
 class AppCodeGenerator(Visitor):
     source: str = ""
     level: int = 0
+    imports: List[str] = _make_factory(lambda: ["package:flutter/material.dart"])
+    add_main: bool = False
 
     @property
     def indent(self):
@@ -147,7 +161,18 @@ class AppCodeGenerator(Visitor):
     def __call__(self, root: App, **kwargs) -> str:
         assert isinstance(root, App)
         self.root = root
-        self.source: str = self.visit(root, **kwargs)
+        self.source: str = (
+            "import '"
+            + "';\nimport '".join(import_name for import_name in self.imports)
+            + "';\n\n"
+        )
+
+        if self.add_main:
+            self.level += 1
+            self.source += f"void main() {{\n{self.indent}runApp({root.name}());\n}}\n\n"
+            self.level -= 1
+
+        self.source += self.visit(root, **kwargs)
         return self.source
 
     def visit_App(self, node: App, **kwargs) -> str:
@@ -172,9 +197,12 @@ class AppCodeGenerator(Visitor):
         source += f"{self.indent}{node.return_type} {node.name}({arg_list}) {{\n"
 
         if node.return_var:
-            source += self.visit(node.return_var, **kwargs)
+            self.level += 1
+            return_code = self.visit(node.return_var, **kwargs)
+            source += f"{self.indent}return {return_code};\n"
+            self.level -= 1
 
-        source += f"}}  // {node.name}\n"
+        source += f"{self.indent}}}  // {node.name}\n"
         return source
 
     def visit_Object(self, node: Object, **kwargs) -> str:
@@ -184,13 +212,18 @@ class AppCodeGenerator(Visitor):
             if len(node.elems) > 0:
                 source += " = "
 
-        if len(node.elems) > 0:
+        if len(node.text) > 0 or len(node.elems) > 0:
             source += f"{node.type_name}(\n"
             self.level += 1
+            if len(node.text) > 0:
+                source += f'{self.indent}"{node.text}"'
+                if len(node.elems) > 0:
+                    source += ",\n"
+
             for key, elem in node.elems.items():
                 right = self.visit(elem, **kwargs)
-                source += f"{self.indent}{key}: {right}"
+                source += f"{self.indent}{key}: {right},\n"
             self.level -= 1
-            source += f"{self.indent});  // {node.type_name}\n"
+            source += f"{self.indent})"  # ,  // {node.type_name}\n"
 
         return source

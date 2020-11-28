@@ -32,7 +32,7 @@ class Visitor:
     def generic_visit(self, node: Node, **kwargs):
         items = []
         if isinstance(node, (str, bytes, bytearray)):
-            pass
+            return node
         elif isinstance(node, collections.abc.Mapping):
             items = node.items()
         elif isinstance(node, collections.abc.Iterable):
@@ -44,11 +44,17 @@ class Visitor:
 
     def visit(self, node: Node, **kwargs):
         """Visit a node."""
-        method = "visit_" + node.__class__.__name__
+        node_class = node.__class__
+        method = "visit_" + node_class.__name__
         visitor = getattr(self, method, None)
-        if visitor is None:  # Try parent class...
-            method = "visit_" + type(node).__bases__[0].__name__
-            visitor = getattr(self, method, self.generic_visit)
+
+        while not visitor and len(node_class.__bases__) > 0:  # Try parent class...
+            node_class = node_class.__bases__[0]
+            method = "visit_" + node_class.__name__
+            visitor = getattr(self, method, None)
+
+        if not visitor:
+            visitor = self.generic_visit
         return visitor(node, **kwargs)
 
 
