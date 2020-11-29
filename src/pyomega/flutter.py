@@ -38,10 +38,6 @@ class Node(abc.ABC):
             return parent_type.type_name
         return parent_type.name
 
-    @property
-    def grandparent_name(self):
-        return super().parent_name
-
 
 @dataclass
 class Object(Node):
@@ -49,6 +45,10 @@ class Object(Node):
     type_name: str = "Object"
     text: str = ""
     elems: Dict[str, Any] = _dict_factory
+
+    @property
+    def elements(self):
+        return self.elems
 
 
 @dataclass
@@ -64,13 +64,30 @@ class Method(Node):
 class Class(Node):
     name: str = "Class"
     methods: List[Method] = _list_factory
-    members: List[Object] = _list_factory
+    # members: List[Any] = _list_factory
 
 
 @dataclass
 class Container(Object):
     name: str = ""
     type_name: str = "Container"
+    child: Object = None
+    home: Object = None
+    color: str = ""
+    title: str = ""
+
+    @property
+    def elements(self):
+        elems = self.elems.copy()
+        if self.child:
+            elems["child"] = self.child
+        if self.home:
+            elems["home"] = self.home
+        if len(self.color) > 0:
+            elems["color"] = self.color
+        if len(self.title) > 0:
+            elems["title"] = self.title
+        return elems
 
 
 @dataclass
@@ -80,15 +97,31 @@ class Center(Container):
 
 
 @dataclass
-class Text(Container):
-    name: str = ""
-    type_name: str = "Text"
-
-
-@dataclass
 class Style(Container):
     name: str = ""
     type_name: str = "Style"
+    decoration: str = ""
+
+    @property
+    def elements(self):
+        elems = super().elements
+        if len(self.decoration) > 0:
+            elems["decoration"] = self.decoration
+        return elems
+
+
+@dataclass
+class Text(Container):
+    name: str = ""
+    type_name: str = "Text"
+    style: Style = None
+
+    @property
+    def elements(self):
+        elems = self.elems.copy()
+        if self.style:
+            elems["style"] = self.style
+        return elems
 
 
 @dataclass
@@ -109,7 +142,7 @@ class AppSettings(Widget):
 @dataclass
 class ThemeData(Widget):
     name: str = "App"
-    methods: List[Any] = _make_factory(
+    members: List[Any] = _make_factory(
         lambda: [
             ("fontFamily", "Cabin"),
         ]
@@ -130,12 +163,19 @@ class App(StatelessWidget):
             )
         ]
     )
+    members: List[Any] = _list_factory
     elems: Dict[str, Any] = _dict_factory
 
 
 @dataclass
 class MaterialApp(App):
     name: str = "MaterialApp"
+    title: str = ""
+
+    def set_return(self, return_var: Object):
+        self.methods[0].return_var = Container(
+            type_name="MaterialApp", home=return_var, title=f'"{self.title}"'
+        )
 
     @property
     def parent_name(self):
@@ -169,7 +209,9 @@ class AppCodeGenerator(Visitor):
 
         if self.add_main:
             self.level += 1
-            self.source += f"void main() {{\n{self.indent}runApp({root.name}());\n}}\n\n"
+            self.source += (
+                f"void main() {{\n{self.indent}runApp({root.name}());\n}}\n\n"
+            )
             self.level -= 1
 
         self.source += self.visit(root, **kwargs)
@@ -209,21 +251,21 @@ class AppCodeGenerator(Visitor):
         source: str = ""
         if len(node.name) > 0:
             source += f"{node.type_name} {node.name}"
-            if len(node.elems) > 0:
+            if len(node.elements) > 0:
                 source += " = "
 
-        if len(node.text) > 0 or len(node.elems) > 0:
+        if len(node.text) > 0 or len(node.elements) > 0:
             source += f"{node.type_name}(\n"
             self.level += 1
             if len(node.text) > 0:
                 source += f'{self.indent}"{node.text}"'
-                if len(node.elems) > 0:
+                if len(node.elements) > 0:
                     source += ",\n"
 
-            for key, elem in node.elems.items():
+            for key, elem in node.elements.items():
                 right = self.visit(elem, **kwargs)
                 source += f"{self.indent}{key}: {right},\n"
             self.level -= 1
-            source += f"{self.indent})"  # ,  // {node.type_name}\n"
+            source += f"{self.indent})"
 
         return source
