@@ -16,7 +16,7 @@
                 // "pytest",
                 "-k",
                 "test_spmv_coo",
-                "./tests/test_parser.py"
+                "./tests/test_visit.py"
                 // "./tests/test_flutter.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"

@@ -11,6 +11,7 @@ from pyomega import ir
 Implementation of a polyhedral expression parser in PyOmega.
 """
 
+
 @dataclass
 class Parser(ast.NodeVisitor):
     expression: str = ""

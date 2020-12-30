@@ -48,8 +48,8 @@ def test_spmv():
 
 
 def test_spmv_coo():
-    expr = "spmv = {[n, i, j]: 0 <= n < NNZ ^ i == row(n) ^ j == col(n)}"
-    expr += "\ny[i] += A[n] * x[j]"
+    expr = "spmv = {[n, i, j]: 0 <= n < M ^ i == row(n) ^ j == col(n)}\n"
+    expr += "y[i] += A[n] * x[j]"
     ast_test(expr)
     parser_test(expr, "spmv", ("n", "i", "j"), 3)
 
