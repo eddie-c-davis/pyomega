@@ -1,6 +1,7 @@
 # src/pyomega/ir.py
 import ast
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -61,16 +62,16 @@ class Relation(Node):
 @dataclass
 class Space(Node):
     name: str = ""
-    iterators: List[Iterator] = ()
+    iterators: Dict[str, Iterator] = ()
     relations: List[Relation] = ()
 
     def __init__(self):
-        self.iterators = []
-        self.relations = []
+        self.iterators = OrderedDict()
+        self.relations = list()
 
     def add_iterator(self, iterator: Iterator):
         assert isinstance(iterator, Iterator)
-        self.iterators.append(iterator)
+        self.iterators[iterator.name] = iterator
 
     def add_relation(self, relation: Relation):
         assert isinstance(relation, Relation)
@@ -91,3 +92,19 @@ class Computation(Node):
     name: str = ""
     space: Space = None
     statements: List[Statement] = ()
+
+
+@dataclass
+class Access(Node):
+    node: Node
+    is_write: bool
+
+
+@dataclass
+class Field(Node):
+    name: str
+    accesses: List[Access] = ()
+
+    def __init__(self, name: str):
+        self.name = name
+        self.accesses = list()

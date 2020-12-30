@@ -14,9 +14,10 @@
                 // "-x",
                 // "run",
                 // "pytest",
-                // "-k",
-                // "test_krp",
-                "./tests/test_flutter.py"
+                "-k",
+                "test_spmv_coo",
+                "./tests/test_parser.py"
+                // "./tests/test_flutter.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"
                 //"64"

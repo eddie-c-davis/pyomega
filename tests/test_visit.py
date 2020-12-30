@@ -3,12 +3,12 @@ import sys
 import ast
 
 sys.path.append("./src")
-from pyomega.parser import Parser
+from pyomega.parser import RelParser
 from pyomega.visit import ASTVisitor, CodeGenVisitor
 
 
 def codegen_test(expr, code):
-    space = Parser(expression=expr).parse()
+    space = RelParser(expression=expr).parse()
     visitor = CodeGenVisitor()
     source = visitor(space)
     assert source == code

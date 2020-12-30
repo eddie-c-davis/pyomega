@@ -71,7 +71,7 @@ class CodeGenVisitor(Visitor):
 
     def codegen(self) -> str:
         name: str = self.root.name
-        iterators = [iterator.name for iterator in self.root.iterators]
+        iterators = list(self.root.iterators.keys())
         schedule: str = "r0{name} := {{[{iterators}] -> [0, {tuple}, 0]}}".format(
             name=name, iterators=", ".join(iterators), tuple=", 0, ".join(iterators)
         )

@@ -3,24 +3,30 @@ import sys
 import ast
 
 sys.path.append("./src")
-from pyomega.parser import Parser
+from pyomega.parser import CompParser, RelParser
 from pyomega.visit import CodeGenVisitor
 
 
 def ast_test(expr):
     root = ast.parse(expr)
     assert isinstance(root, ast.Module)
-    assert len(root.body) == 1
-    assert isinstance(root.body[0], ast.Assign)
+    assert len(root.body) > 0
+    for statement in root.body:
+        assert isinstance(statement, (ast.Assign, ast.AugAssign))
 
 
 def parser_test(expr, name="s", iterators=("i", "j"), n_relations=2):
-    space = Parser(expression=expr).parse()
+    # Assume 1st statement is relation, remaining are computations (for now)
+    statements = expr.split("\n")
+    space = RelParser(expression=statements[0]).parse()
     assert space.name == name
-    assert len(space.iterators) == len(iterators)
-    for n in range(len(iterators)):
-        assert space.iterators[n].name == iterators[n]
+    assert tuple(space.iterators.keys()) == iterators
     assert len(space.relations) == n_relations
+
+    for statement in statements[1:]:
+        fields, tree = CompParser(space, expression=statement).parse()
+        assert len(fields) > 0
+        assert tree is not None
 
 
 def test_2d():
@@ -39,6 +45,13 @@ def test_spmv():
     expr = "spmv = {[i, n, j]: 0 <= i < N ^ rp(i) <= n < rp(i + 1) ^ j == col(n)}"
     ast_test(expr)
     parser_test(expr, "spmv", ("i", "n", "j"), 3)
+
+
+def test_spmv_coo():
+    expr = "spmv = {[n, i, j]: 0 <= n < NNZ ^ i == row(n) ^ j == col(n)}"
+    expr += "\ny[i] += A[n] * x[j]"
+    ast_test(expr)
+    parser_test(expr, "spmv", ("n", "i", "j"), 3)
 
 
 def test_krp():
