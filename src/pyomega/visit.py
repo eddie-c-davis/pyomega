@@ -154,3 +154,8 @@ class ASTVisitor(Visitor):
         self.root = ast.ext[0]
         assert isinstance(self.root, c_ast.FuncDef)
         return self.root
+
+
+class Transformer(Visitor):
+    """Like ast.NodeTransformer"""
+    pass

@@ -1,4 +1,4 @@
-# tests/test_parser.py
+# tests/test_passes.py
 import sys
 import ast
 
