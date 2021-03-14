@@ -8,20 +8,23 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "/home/eddied/.local/bin/pytest",
+            "program": "/home/eddied/venv/bin/pytest",
             "console": "integratedTerminal",
             "args": [
                 // "-x",
                 // "run",
                 // "pytest",
                 "-k",
-                "test_spmv_coo",
-                "./tests/test_visit.py"
+                "inline",
+                "./tests/test_passes.py"
                 // "./tests/test_flutter.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"
                 //"64"
-            ]
+            ],
+            "env": {
+                "PYTHONPATH": "./src:$PYTHONPATH"
+            }
         },
         {
             "name": "(cuda-gdb) Launch",
