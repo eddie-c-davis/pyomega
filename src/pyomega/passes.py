@@ -4,13 +4,11 @@ import copy as cp
 import inspect
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Set, Tuple
-
-from pyomega import ir
+from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
 
 """
-Implementation of a polyhedral expression parser in PyOmega.
+Implementation of compiler pass infrastructure.
 """
 
 
@@ -37,39 +35,68 @@ class FunctionCallInliner(Pass):
     func_name: str = ""
     param_names: Dict[str, Any] = ()
     arg_names: List[str] = ()
+    current_block: List[ast.AST] = ()
+    new_block: List[ast.AST] = ()
 
-    def __call__(self, call_func: Callable, inline_func: Callable):
-        source = inspect.getsource(call_func)
-        self.root_node = ast.parse(source)
+    def __call__(
+        self,
+        func_node: Union[Callable, ast.FunctionDef],
+        inline_node: Union[Callable, ast.FunctionDef],
+        **kwargs
+    ):
+        if isinstance(func_node, Callable):
+            source = inspect.getsource(func_node)
+            func_node = ast.parse(source).body[0]
+        self.root_node = func_node
 
-        source = inspect.getsource(inline_func)
-        self.inline_root = ast.parse(source).body[0]
+        if isinstance(inline_node, Callable):
+            source = inspect.getsource(inline_node)
+            inline_node = ast.parse(source).body[0]
+        self.inline_root = inline_node
+
         self.func_name = self.inline_root.name
         args = self.inline_root.args.args
         self.param_names = {args[i].arg: i for i in range(len(args))}
 
-        new_root = self.visit(self.root_node)
-
-        return new_root
+        return self.visit(self.root_node, **kwargs)
 
     def _process_stmts(self, statements: List[Any]):
-        new_statements = []
+        self.new_block = []
+        outer_block = self.current_block
+        self.current_block = self.new_block
+
         for statement in statements:
-            if isinstance(statement, ast.Return):
-                statement = statement.value
-            new_statement = cp.deepcopy(statement)
+            # Inside a function call If arg_names is nonempty
+            new_statement = cp.deepcopy(statement) if self.arg_names else statement
             if self.visit(new_statement):
-                new_statements.append(new_statement)
-        return new_statements
+                self.new_block.append(new_statement)
+
+        self.current_block = outer_block
+
+        return self.new_block
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        node.body = self._process_stmts(node.body)
+        # TODO: Currently have multiple return statements...
+        node.body.pop()
+        return node
+
+    def visit_With(self, node: ast.With):
+        node.body = self._process_stmts(node.body)
+        return node
+
+    def visit_If(self, node: ast.If):
+        node.body = self._process_stmts(node.body)
+        if node.orelse:
+            node.orelse = self._process_stmts(node.orelse)
+        return node
 
     def visit_Call(self, node: ast.Call):
         if node.func.id == self.func_name:
             self.arg_names = [arg.id for arg in node.args]
             new_statements = self._process_stmts(self.inline_root.body)
-            # TODO: What to return here? -- new block statement?
-            if len(new_statements) == 1:
-                return new_statements[0]
-            return new_statements
+            self.arg_names = []
+            return new_statements[-1]
         return node
 
     def visit_Name(self, name: ast.Name):
