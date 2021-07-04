@@ -23,18 +23,27 @@ def codegen_test(expr, code):
         assert c_code
         c_statements.append(c_code)
 
+    # Define prototypes...
+    int_type: str = "const int"
+    iterators: str = f", {int_type} ".join(space.iterators.keys())
     source: str = ""
-    iterators: str = ", ".join(space.iterators.keys())
     for index, statement in enumerate(c_statements):
-        source += f"#define s{index}({iterators}) {statement}"
+        source += f"auto void s{index}({int_type} {iterators});\n"
+    source += "\n"
+    for index, statement in enumerate(c_statements):
+        source += f"inline void s{index}({int_type} {iterators}) {{ {statement} }}\n"
 
     visitor = CodeGenVisitor()
     source += "\n" + visitor(space)
-    assert source == code
 
     visitor = ASTVisitor()
     c_ast = visitor(source)
+
+    # Assert generated source produces a valid C AST...
     assert c_ast is not None
+
+    # Assert expected code is generated
+    assert source == code
 
 
 def test_2d():

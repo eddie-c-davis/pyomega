@@ -166,8 +166,8 @@ class PyToCVisitor(Visitor):
     source: str = ""
 
     def __call__(self, root: ast.Module) -> str:
-        for stmt in root.body:
-            self.source += self.visit(stmt) + ";\n"
+        stmt_sources = [self.visit(stmt) for stmt in root.body]
+        self.source = ";\n".join(stmt_sources) + ";"
         return self.source
 
     def visit_AugAssign(self, node: ast.AugAssign) -> str:
