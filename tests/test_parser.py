@@ -4,7 +4,6 @@ import ast
 
 sys.path.append("./src")
 from pyomega.parser import CompParser, RelParser
-from pyomega.visit import CodeGenVisitor
 
 
 def ast_test(expr):

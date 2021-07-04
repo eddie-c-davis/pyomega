@@ -3,19 +3,38 @@ import sys
 import ast
 
 sys.path.append("./src")
-from pyomega.parser import RelParser
-from pyomega.visit import ASTVisitor, CodeGenVisitor
+from pyomega.parser import CompParser, RelParser
+from pyomega.visit import ASTVisitor, CodeGenVisitor, PyToCVisitor
 
 
 def codegen_test(expr, code):
-    space = RelParser(expression=expr).parse()
+    # Assume 1st statement is relation, remaining are computations (for now)
+    statements = expr.split("\n")
+    space = RelParser(expression=statements[0]).parse()
+
+    c_statements = []
+    for statement in statements[1:]:
+        fields, py_ast = CompParser(space, expression=statement).parse()
+        assert len(fields) > 0
+        assert py_ast is not None
+
+        py_to_c = PyToCVisitor()
+        c_code = py_to_c(py_ast)
+        assert c_code
+        c_statements.append(c_code)
+
+    source: str = ""
+    iterators: str = ", ".join(space.iterators.keys())
+    for index, statement in enumerate(c_statements):
+        source += f"#define s{index}({iterators}) {statement}"
+
     visitor = CodeGenVisitor()
-    source = visitor(space)
+    source += "\n" + visitor(space)
     assert source == code
 
     visitor = ASTVisitor()
-    ast = visitor(source)
-    assert ast is not None
+    c_ast = visitor(source)
+    assert c_ast is not None
 
 
 def test_2d():
@@ -39,7 +58,7 @@ def test_spmv():
 def test_spmv_coo():
     expr = "spmv = {[n, i, j]: 0 <= n < M ^ i == row(n) ^ j == col(n)}\n"
     expr += "y[i] += A[n] * x[j]"
-    code = "void spmv(int M) {\n  int t2, t4, t6;\nfor(t2 = 0; t2 <= M-1; t2++) {\n  t4=row(t2);\n  t6=col(t2);\n  s0(t2,t4,t6);\n}\n}"
+    code = "#define s0(n, i, j) y[i] += A[n] * x[j];\n\nvoid spmv(int M) {\n  int t2, t4, t6;\nfor(t2 = 0; t2 <= M-1; t2++) {\n  t4=row(t2);\n  t6=col(t2);\n  s0(t2,t4,t6);\n}\n}"
     codegen_test(expr, code)
 
 

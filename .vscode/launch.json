@@ -15,8 +15,8 @@
                 // "run",
                 // "pytest",
                 "-k",
-                "inline",
-                "./tests/test_passes.py"
+                "test_spmv_coo",
+                "./tests/test_codegen.py"
                 // "./tests/test_flutter.py"
                 //"./examples/tridiagonal_solve.py"
                 // "./examples/double_lap_demo.py"

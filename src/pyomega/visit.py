@@ -147,7 +147,7 @@ class ASTVisitor(Visitor):
     code: str = ""
     root: c_ast.FuncDef = None
 
-    def __call__(self, code: str) -> str:
+    def __call__(self, code: str) -> c_ast.FuncDef:
         self.code = code
         parser = c_parser.CParser()
         ast = parser.parse(self.code, filename="<none>")
@@ -159,3 +159,75 @@ class ASTVisitor(Visitor):
 class Transformer(Visitor):
     """Like ast.NodeTransformer"""
     pass
+
+
+@dataclass
+class PyToCVisitor(Visitor):
+    source: str = ""
+
+    def __call__(self, root: ast.Module) -> str:
+        for stmt in root.body:
+            self.source += self.visit(stmt) + ";\n"
+        return self.source
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> str:
+        target = self.visit(node.target)
+        op = self.visit(node.op)
+        value = self.visit(node.value)
+        return f"{target} {op}= {value}"
+
+    def visit_BinOp(self, node: ast.BinOp) -> str:
+        left = self.visit(node.left)
+        op = self.visit(node.op)
+        right = self.visit(node.right)
+        return f"{left} {op} {right}"
+
+    def visit_Subscript(self, node: ast.Subscript) -> str:
+        c_value = self.visit(node.value)
+        c_slice = self.visit(node.slice)
+        return f"{c_value}[{c_slice}]"
+
+    def visit_Name(self, node: ast.Name) -> str:
+        return node.id
+
+    def visit_Index(self, node: ast.Index) -> str:
+        return self.visit(node.value)
+
+    def visit_Add(self, node: ast.Add) -> str:
+        return "+"
+
+    def visit_Sub(self, node: ast.Sub) -> str:
+        return "-"
+
+    def visit_Mult(self, node: ast.Mult) -> str:
+        return "*"
+
+    def visit_Div(self, node: ast.Div) -> str:
+        return "/"
+
+    def visit_FloorDiv(self, node: ast.FloorDiv) -> str:
+        return "/"
+
+    def visit_Mod(self, node: ast.Mod) -> str:
+        return "%"
+
+    def visit_Pow(self, node: ast.Pow) -> str:
+        return "pow"
+
+    def visit_LShift(self, node: ast.LShift) -> str:
+        return "<<"
+
+    def visit_RShift(self, node: ast.RShift) -> str:
+        return ">>"
+
+    def visit_BitOr(self, node: ast.BitOr) -> str:
+        return "|"
+
+    def visit_BitXor(self, node: ast.BitXor) -> str:
+        return "^"
+
+    def visit_BitAnd(self, node: ast.BitAnd) -> str:
+        return "&"
+
+    def visit_MatMult(self, node: ast.MatMult) -> str:
+        raise RuntimeError("Unsupported operator: MatMult ('@')")
