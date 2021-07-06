@@ -35,13 +35,16 @@ class Parser(ast.NodeVisitor):
             self.visit(child)
 
 
+
 @dataclass
 class RelParser(Parser):
     space: ir.Space = ir.Space()
+    ufuncs: Dict[str, ir.Function] = ()
 
     def __init__(self, node: ast.Module = None, expression: str = ""):
         super().__init__(node, expression)
         self.space = ir.Space()
+        self.ufuncs = {}
 
     def parse(self) -> ir.Space:
         self.visit(self.root)
@@ -195,3 +198,28 @@ class CompParser(Parser):
         if name not in self.fields:
             self.fields[name] = ir.Field(name)
         return self.fields[name]
+
+
+@dataclass
+class IRParser(Parser):
+    space: ir.Space = ir.Space()
+    fields: Dict[str, Any] = ()
+    code: str = ""
+
+    def __init__(self, code: str = ""):
+        self.code = code
+
+    def parse(self) -> Dict[str, Any]:
+        # Assume 1st statement is relation, remaining are computations (for now)
+        statements = self.code.split("\n")
+        rel_expr = statements[0]
+        space = RelParser(expression=rel_expr).parse()
+
+        body = "\n".join(statements[1:])
+        fields, py_ast = CompParser(space, expression=body).parse()
+        assert fields
+        assert py_ast is not None
+
+        py_to_c = PyToCTranslator()
+        c_code = py_to_c(py_ast)
+        assert c_code

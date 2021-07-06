@@ -3,29 +3,19 @@ import sys
 import ast
 
 sys.path.append("./src")
-from pyomega.parser import CompParser, RelParser
-from pyomega.visit import ASTVisitor, CodeGenVisitor, PyToCVisitor
+from pyomega.parser import CompParser, IRParser, RelParser
+from pyomega.visit import ASTVisitor, CodeGenerator, PyToCTranslator
 
 
 def codegen_test(expr, code):
-    # Assume 1st statement is relation, remaining are computations (for now)
-    statements = expr.split("\n")
-    space = RelParser(expression=statements[0]).parse()
+    # TODO(eddied): Refactor this into a class, not a test function!
 
-    c_statements = []
-    for statement in statements[1:]:
-        fields, py_ast = CompParser(space, expression=statement).parse()
-        assert len(fields) > 0
-        assert py_ast is not None
-
-        py_to_c = PyToCVisitor()
-        c_code = py_to_c(py_ast)
-        assert c_code
-        c_statements.append(c_code)
+    ir_parser = IRParser(expr)
+    results = ir_parser.parse()
 
     # Define prototypes...
     int_type: str = "const int"
-    iterators: str = f", {int_type} ".join(space.iterators.keys())
+    iterators: str = f"{int_type} " + f", {int_type} ".join(space.iterators.keys())
     source: str = ""
     for index, statement in enumerate(c_statements):
         source += f"auto void s{index}({int_type} {iterators});\n"
@@ -33,7 +23,7 @@ def codegen_test(expr, code):
     for index, statement in enumerate(c_statements):
         source += f"inline void s{index}({int_type} {iterators}) {{ {statement} }}\n"
 
-    visitor = CodeGenVisitor()
+    visitor = CodeGenerator()
     source += "\n" + visitor(space)
 
     visitor = ASTVisitor()
@@ -47,7 +37,8 @@ def codegen_test(expr, code):
 
 
 def test_2d():
-    expr = "s2d = {[i, j]: 0 <= i < N ^ 0 <= j < M}"
+    expr = "s2d = {[i, j]: 0 <= i < N ^ 0 <= j < M}\n"
+    expr += "y[i] += A[i, j] * x[j]"
     code = "void s2d(int N, int M) {\n  int t2, t4;\nfor(t2 = 0; t2 <= N-1; t2++) {\n  for(t4 = 0; t4 <= M-1; t4++) {\n    s0(t2,t4);\n  }\n}\n}"
     codegen_test(expr, code)
 

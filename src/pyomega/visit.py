@@ -59,7 +59,7 @@ class Visitor:
 
 
 @dataclass
-class CodeGenVisitor(Visitor):
+class CodeGenerator(Visitor):
     source: str = ""
 
     def __call__(self, root: Space) -> str:
@@ -162,7 +162,7 @@ class Transformer(Visitor):
 
 
 @dataclass
-class PyToCVisitor(Visitor):
+class PyToCTranslator(Visitor):
     source: str = ""
 
     def __call__(self, root: ast.Module) -> str:

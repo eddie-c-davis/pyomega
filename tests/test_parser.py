@@ -3,7 +3,7 @@ import sys
 import ast
 
 sys.path.append("./src")
-from pyomega.parser import CompParser, RelParser
+from pyomega.parser import CompParser, PyToCTranslator, RelParser
 
 
 def ast_test(expr):
@@ -58,3 +58,11 @@ def test_krp():
     expr = "krp = {[n, i, j, k, r]: 0 <= n < M ^ i == ind0(n) ^ j == ind1(n) ^ k == ind2(n) ^ 0 <= r < R}"
     ast_test(expr)
     parser_test(expr, "krp", ("n", "i", "j", "k", "r"), 5)
+
+
+def test_py_to_c():
+    py_code = "y[i] += A[n] * x[j]"
+    py_to_c = PyToCTranslator()
+    fields, py_ast = CompParser(expression=py_code).parse()
+    c_code = py_to_c(py_ast)
+    assert c_code == "y[i] += A[n] * x[j]"
