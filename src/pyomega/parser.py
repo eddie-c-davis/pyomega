@@ -2,7 +2,7 @@
 import ast
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from pyomega import ir
 
@@ -220,6 +220,4 @@ class IRParser(Parser):
         assert fields
         assert py_ast is not None
 
-        py_to_c = PyToCTranslator()
-        c_code = py_to_c(py_ast)
-        assert c_code
+        return space, py_ast, fields

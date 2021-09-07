@@ -14,8 +14,8 @@
                 // "-x",
                 // "run",
                 // "pytest",
-                "-k",
-                "test_spmv_coo",
+                // "-k",
+                // "test_spmv",
                 "./tests/test_codegen.py"
                 // "./tests/test_flutter.py"
                 //"./examples/tridiagonal_solve.py"

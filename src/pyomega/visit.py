@@ -62,16 +62,31 @@ class Visitor:
 class CodeGenerator(Visitor):
     source: str = ""
 
-    def __call__(self, root: Space) -> str:
-        assert isinstance(root, Space)
-        self.root = root
+    def __call__(self, space: Space, ast) -> str:
+        assert isinstance(space, Space)
+        self.space = space
+        self.ast = ast
         self.constants: List[str] = []
-        self.source: str = self.visit(root)
+        self.source: str = self.visit(space)
         return self.codegen()
 
     def codegen(self) -> str:
-        name: str = self.root.name
-        iterators = list(self.root.iterators.keys())
+        py_to_c = PyToCTranslator()
+        c_code = py_to_c(self.ast)
+        c_statements = c_code.split("\n")
+
+        # Define prototypes...
+        int_type: str = "const int"
+        iterators: str = f"{int_type} " + f", {int_type} ".join(self.space.iterators.keys())
+        source: str = ""
+        for index, statement in enumerate(c_statements):
+            source += f"auto void s{index}({int_type} {iterators});\n"
+        source += "\n"
+        for index, statement in enumerate(c_statements):
+            source += f"inline void s{index}({int_type} {iterators}) {{ {statement} }}\n"
+
+        name: str = self.space.name
+        iterators = list(self.space.iterators.keys())
         schedule: str = "r0{name} := {{[{iterators}] -> [0, {tuple}, 0]}}".format(
             name=name, iterators=", ".join(iterators), tuple=", 0, ".join(iterators)
         )
@@ -98,7 +113,9 @@ class CodeGenerator(Visitor):
         code = "{header} {iterators};\n{code}\n}}".format(
             header=header, iterators=", ".join(omega_iters), code=code
         )
-        return code
+        source += "\n" + code
+
+        return source
 
     def visit_Space(self, node: Space) -> str:
         source = f"{node.name} = {{"
@@ -150,9 +167,8 @@ class ASTVisitor(Visitor):
     def __call__(self, code: str) -> c_ast.FuncDef:
         self.code = code
         parser = c_parser.CParser()
-        ast = parser.parse(self.code, filename="<none>")
-        self.root = ast.ext[0]
-        assert isinstance(self.root, c_ast.FuncDef)
+        self.root = parser.parse(self.code, filename="<none>")
+        assert isinstance(self.root, c_ast.FileAST)
         return self.root
 
 
@@ -170,6 +186,12 @@ class PyToCTranslator(Visitor):
         self.source = ";\n".join(stmt_sources) + ";"
         return self.source
 
+    def visit_Assign(self, node: ast.Assign) -> str:
+        assert len(node.targets) < 2
+        target = self.visit(node.targets[0])
+        value = self.visit(node.value)
+        return f"{target} = {value}"
+
     def visit_AugAssign(self, node: ast.AugAssign) -> str:
         target = self.visit(node.target)
         op = self.visit(node.op)
@@ -182,6 +204,11 @@ class PyToCTranslator(Visitor):
         right = self.visit(node.right)
         return f"{left} {op} {right}"
 
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> str:
+        operand = self.visit(node.operand)
+        op = self.visit(node.op)
+        return f"{op}{operand}"
+
     def visit_Subscript(self, node: ast.Subscript) -> str:
         c_value = self.visit(node.value)
         c_slice = self.visit(node.slice)
@@ -193,10 +220,22 @@ class PyToCTranslator(Visitor):
     def visit_Index(self, node: ast.Index) -> str:
         return self.visit(node.value)
 
+    def visit_Tuple(self, node: ast.Tuple) -> str:
+        return ", ".join([self.visit(elt) for elt in node.elts])
+
+    def visit_Constant(self, node: ast.Constant) -> str:
+        return f"{node.value}"
+
     def visit_Add(self, node: ast.Add) -> str:
         return "+"
 
+    def visit_UAdd(self, node: ast.UAdd) -> str:
+        return "+"
+
     def visit_Sub(self, node: ast.Sub) -> str:
+        return "-"
+
+    def visit_USub(self, node: ast.USub) -> str:
         return "-"
 
     def visit_Mult(self, node: ast.Mult) -> str:

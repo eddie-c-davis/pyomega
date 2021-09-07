@@ -5,5 +5,5 @@
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "python.pythonPath": "/home/eddied/venv/bin/python"
+    "python.pythonPath": "/bin/python"
 }
