@@ -1,10 +1,11 @@
 # src/pyomega/visit.py
 import collections
+import re
 import sys
 
 from dataclasses import asdict, dataclass
 from pycparser import c_parser, c_ast
-from typing import Dict, List
+from typing import Any, Dict, List
 
 sys.path.append("./src/omega")
 from omega import OmegaLib
@@ -62,12 +63,14 @@ class Visitor:
 class CodeGenerator(Visitor):
     source: str = ""
 
-    def __call__(self, space: Space, ast) -> str:
+    def __call__(self, space: Space, ast: ast.Module, fields: Dict[str, Any]) -> str:
         assert isinstance(space, Space)
         self.space = space
         self.ast = ast
         self.constants: List[str] = []
         self.source: str = self.visit(space)
+        self.fields = fields
+
         return self.codegen()
 
     def codegen(self) -> str:
@@ -76,20 +79,23 @@ class CodeGenerator(Visitor):
         c_statements = c_code.split("\n")
 
         # Define prototypes...
-        int_type: str = "const int"
-        iterators: str = f"{int_type} " + f", {int_type} ".join(self.space.iterators.keys())
+        iterators: List[str] = list(self.space.iterators.keys())
+        iter_str: str = ", ".join(iterators)
+
         source: str = ""
+        # for index, statement in enumerate(c_statements):
+        #     source += f"auto void s{index}({iter_str});\n"
+
+        # source += "\n"
         for index, statement in enumerate(c_statements):
-            source += f"auto void s{index}({int_type} {iterators});\n"
-        source += "\n"
-        for index, statement in enumerate(c_statements):
-            source += f"inline void s{index}({int_type} {iterators}) {{ {statement} }}\n"
+            # source += f"inline void s{index}({iter_str}) {{ {statement} }}\n"
+            for iterator in iterators:
+                statement = re.sub(f"\\b[{iterator}]\\b", f"({iterator})", statement)
+            source += f"#define s{index}({iter_str}) {{ {statement} }}\n"
 
         name: str = self.space.name
-        iterators = list(self.space.iterators.keys())
-        schedule: str = "r0{name} := {{[{iterators}] -> [0, {tuple}, 0]}}".format(
-            name=name, iterators=", ".join(iterators), tuple=", 0, ".join(iterators)
-        )
+        tuple_str = ", 0, ".join(iterators)
+        schedule: str = f"r0{name} := {{[{iter_str}] -> [0, {tuple_str}, 0]}}"
 
         relation = self.source[self.source.find(" = ") + 3 :]
         rel_map: Dict[str, str] = {name: relation}
@@ -105,9 +111,17 @@ class CodeGenerator(Visitor):
             code = code[code.find("{") + 1 :].lstrip()
             code = code[0 : code.rfind("}") - 1].rstrip()
 
-        header = "void {name}(int {inputs}) {{\n  int".format(
-            name=name, inputs=", int ".join(self.constants)
-        )
+        # Constants first
+        params: List[str] = [f"const int {constant}" for constant in self.constants]
+
+        # Fields next
+        for field in self.fields.values():
+            is_constant = any([not access.is_write for access in field.accesses])
+            params.append(
+                f"{'const ' if is_constant else ''}{field.dtype} *{field.name}"
+            )
+
+        header = f"void {name}({', '.join(params)}) {{\n  int"
         omega_iters = [f"t{n * 2}" for n in range(1, len(iterators) + 1)]
 
         code = "{header} {iterators};\n{code}\n}}".format(
@@ -126,6 +140,7 @@ class CodeGenerator(Visitor):
             relations = [self.visit(relation) for relation in node.relations]
             source += " && ".join(relations)
         source += "}"
+
         return source
 
     def visit_Iterator(self, node: Iterator) -> str:
@@ -152,6 +167,7 @@ class CodeGenerator(Visitor):
                 mid=self.visit(node.mid), right_op=node.right_op
             )
         code += " {right}".format(right=self.visit(node.right))
+
         return code
 
     def visit_Function(self, node: Function) -> str:
@@ -174,6 +190,7 @@ class ASTVisitor(Visitor):
 
 class Transformer(Visitor):
     """Like ast.NodeTransformer"""
+
     pass
 
 

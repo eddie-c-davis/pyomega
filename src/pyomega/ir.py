@@ -104,6 +104,7 @@ class Access(Node):
 class Field(Node):
     name: str
     accesses: List[Access] = ()
+    dtype: str = "float"
 
     def __init__(self, name: str):
         self.name = name
