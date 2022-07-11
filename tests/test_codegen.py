@@ -67,3 +67,18 @@ def test_lap():
     expr += "out[i, j, k] = -4.0 * inp[i, j, k] + inp[i + 1, j, k] + inp[i - 1, j, k] + inp[i, j - 1, k] + inp[i, j + 1, k]"
     code = "auto void s0(const int const int i, const int j, const int k);\n\ninline void s0(const int const int i, const int j, const int k) { out[i, j, k] = -4.0 * inp[i, j, k] + inp[i + 1, j, k] + inp[i - 1, j, k] + inp[i, j - 1, k] + inp[i, j + 1, k]; }\n\nvoid lap(int I, int J, int K) {\n  int t2, t4, t6;\nfor(t2 = 0; t2 <= I-1; t2++) {\n  for(t4 = 0; t4 <= J-1; t4++) {\n    for(t6 = 0; t6 <= K-1; t6++) {\n      s0(t2,t4,t6);\n    }\n  }\n}\n}"
     codegen_test(expr, code, ["out", "inp"])
+
+
+def test_corners():
+    dom_expr = "dom = {[i, j, k]: 0 <= i < N ^ 0 <= j < N ^ 0 <= k < K"
+    copy_expr = dom_expr + " ^ i == N - 1 ^ j == 0}\n"
+    copy_expr += "out[i, j, k] = inp[0, j + 5, 0]"
+
+    ir_parser = IRParser(copy_expr)
+    space, py_ast, fields = ir_parser.parse()
+
+    cg_visitor = CodeGenerator()
+    source = cg_visitor(space, py_ast)
+
+    code = "auto void s0(const int const int i, const int j, const int k);\n\ninline void s0(const int const int i, const int j, const int k) { out[i, j, k] = -4.0 * inp[i, j, k] + inp[i + 1, j, k] + inp[i - 1, j, k] + inp[i, j - 1, k] + inp[i, j + 1, k]; }\n\nvoid lap(int I, int J, int K) {\n  int t2, t4, t6;\nfor(t2 = 0; t2 <= I-1; t2++) {\n  for(t4 = 0; t4 <= J-1; t4++) {\n    for(t6 = 0; t6 <= K-1; t6++) {\n      s0(t2,t4,t6);\n    }\n  }\n}\n}"
+    # codegen_test(variable, code, ["out", "inp"])

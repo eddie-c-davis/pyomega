@@ -5,5 +5,5 @@
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "python.pythonPath": "/bin/python"
+    "python.pythonPath": "/home/eddied/miniconda3/bin/python"
 }

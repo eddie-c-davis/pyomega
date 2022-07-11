@@ -91,6 +91,8 @@ class RelParser(Parser):
             return "/"
         elif isinstance(node, ast.Mod):
             return "%"
+        elif isinstance(node, ast.BitXor):
+            return "||"
         elif isinstance(node, ast.Pow):
             # TODO: Are exponents supported in Presburger expressions?
             return "**"
